@@ -1,6 +1,6 @@
 #lang racket
 
-(require (planet tonyg/stomp))
+(require "../main.rkt") ;; or (planet tonyg/stomp)
 
 (define s (stomp-connect "dev.rabbitmq.com" "guest" "guest" "/"))
 
