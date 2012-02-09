@@ -102,7 +102,8 @@
     (if (eof-object? f)
 	(raise (exn:fail:read:eof
 		(format "Disconnected before receipt ~s was received" receipt)
-		(current-continuation-marks)))
+		(current-continuation-marks)
+		'()))
 	#t)))
 
 (define (make-counter prefix initial-value)
