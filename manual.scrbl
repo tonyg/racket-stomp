@@ -1,7 +1,6 @@
 #lang scribble/manual
 
-@(require planet/scribble
-	  scribble/racket
+@(require scribble/racket
 	  (for-label racket
 		     "functional-queue.rkt"
 		     "main.rkt"))
@@ -111,8 +110,6 @@ messages travelling through the "amq.rabbitmq.log" exchange.
 ]
 
 @section{API}
-
-@(defmodule/this-package main)
 
 @defstruct*[(exn:stomp exn:fail) ([frame stomp-frame?])
 	    #:transparent]{
