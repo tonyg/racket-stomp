@@ -2,14 +2,17 @@
 
 (require "../main.rkt") ;; or (planet tonyg/stomp)
 
-(define s (stomp-connect "dev.rabbitmq.com" "guest" "guest" "/"))
+(define s (stomp-connect "dev.rabbitmq.com"
+			 #:login "guest"
+			 #:passcode "guest"
+			 #:virtual-host "/"))
 
 (stomp-subscribe s "/exchange/amq.rabbitmq.log/#" "s1")
 
 (define (w fmt . args)
   (stomp-send s "/exchange/amq.rabbitmq.log/stomp-tail"
 	      (string->bytes/utf-8 (apply format fmt args))
-	      `((content-type "application/octet-stream"))))
+	      #:headers `((content-type "application/octet-stream"))))
 
 (w "Here I am! My session is ~v" (stomp-session-id s))
 (with-handlers ([exn:break?

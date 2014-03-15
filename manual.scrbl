@@ -61,6 +61,12 @@ STOMP server, the available destinations are
 brokers have different destination name schemata and routing
 behaviours.
 
+@section{Changes}
+
+Version 3.0 of this library changes the interface to many of the main
+API procedures, generally relying more on keyword arguments and less
+on positional arguments.
+
 @section{Examples}
 
 In the examples below, I'll make use of the
@@ -71,7 +77,10 @@ demonstration broker service}.
 
 @racketblock[
 	     (require (planet tonyg/stomp))
-	     (define s (stomp-connect "dev.rabbitmq.com" "guest" "guest" "/"))
+	     (define s (stomp-connect "dev.rabbitmq.com"
+				      #:login "guest"
+				      #:passcode "guest"
+				      #:virtual-host "/"))
 	     (stomp-send s "/exchange/amq.rabbitmq.log/info"
 			 (string->bytes/utf-8 "Hello world, from Racket!"))
 	     (stomp-disconnect s)
@@ -81,12 +90,15 @@ demonstration broker service}.
 
 @racketblock[
 	     (require (planet tonyg/stomp))
-	     (define s (stomp-connect "dev.rabbitmq.com" "guest" "guest" "/"))
+	     (define s (stomp-connect "dev.rabbitmq.com"
+				      #:login "guest"
+				      #:passcode "guest"
+				      #:virtual-host "/"))
 	     (call-with-receipt s
 	      (lambda (receipt)
 		(stomp-send s "/exchange/amq.rabbitmq.log/info"
 			    (string->bytes/utf-8 "Hello world, from Racket!")
-			    `((receipt ,receipt)))))
+			    #:headers `((receipt ,receipt)))))
 	     (code:comment @#,t{At this point, we know the server has received our})
 	     (code:comment @#,t{SEND, because we have received its RECEIPT frame. See})
 	     (code:comment @#,t{the STOMP specification for details of what exact})
@@ -102,7 +114,10 @@ messages travelling through the "amq.rabbitmq.log" exchange.
 
 @racketblock[
 	   (require (planet tonyg/stomp))
-	   (define s (stomp-connect "dev.rabbitmq.com" "guest" "guest" "/"))
+	   (define s (stomp-connect "dev.rabbitmq.com"
+				    #:login "guest"
+				    #:passcode "guest"
+				    #:virtual-host "/"))
 	   (stomp-subscribe s "/exchange/amq.rabbitmq.log/#" "my-subscription")
 	   (let loop ()
 	     (let ((m (stomp-next-message s "my-subscription")))
@@ -161,11 +176,11 @@ value is returned; otherwise, @racket[default-value] is returned.
 }
 
 @defproc[(stomp-connect [hostname string?]
-			[login (or string? #f) #f]
-			[passcode (or string? #f) #f]
-			[virtual-host string? hostname]
-			[port-number (and/c exact-nonnegative-integer?
-					    (integer-in 0 65535)) 61613])
+			[#:login login (or string? #f) #f]
+			[#:passcode passcode (or string? #f) #f]
+			[#:virtual-host virtual-host string? hostname]
+			[#:port-number port-number (and/c exact-nonnegative-integer?
+							  (integer-in 0 65535)) 61613])
 	 stomp-session?]{
 
 Opens a STOMP connection and session to the given @racket[hostname] at
@@ -177,7 +192,10 @@ is used. Note that @link["http://www.rabbitmq.com/"]{RabbitMQ}'s
 default virtual host is @racket["/"], so to make a connection to the
 demo STOMP server hosted at dev.rabbitmq.com, you would use:
 
-@racketinput[(stomp-connect "dev.rabbitmq.com" "guest" "guest" "/")]
+@racketinput[(stomp-connect "dev.rabbitmq.com"
+			    #:login "guest"
+			    #:passcode "guest"
+			    #:virtual-host "/")]
 
 }
 
@@ -233,14 +251,14 @@ SEND operation:
 		(stomp-send session
 			    "/queue/a"
 			    (string->bytes/utf-8 "some message body")
-			    `((receipt ,receipt)))))]
+			    #:headers `((receipt ,receipt)))))]
 
 }
 
 @defproc[(stomp-send-command [session stomp-session?]
 			     [command string?]
-			     [headers (listof (list symbol? string?)) '()]
-			     [body (or bytes? #f) #f])
+			     [#:headers headers (listof (list symbol? string?)) '()]
+			     [#:body body (or bytes? #f) #f])
 	 void?]{
 
 Sends a STOMP frame with the given @racket[command], @racket[headers]
@@ -290,7 +308,7 @@ buffer. }
 @defproc[(stomp-send [session stomp-session?]
 		     [destination string?]
 		     [body (or bytes? #f)]
-		     [headers (listof (list symbol? string?))'()])
+		     [#:headers headers (listof (list symbol? string?))'()])
 	 void?]{
 
 Sends a SEND frame to the server with the given @racket[destination],
@@ -304,7 +322,7 @@ messages to the STOMP server. }
 @defproc[(stomp-send/flush [session stomp-session?]
 			   [destination string?]
 			   [body (or bytes? #f)]
-			   [headers (listof (list symbol? string?))'()])
+			   [#:headers headers (listof (list symbol? string?))'()])
 	 void?]{
 
 Just like @racket[stomp-send], but calls @racket[stomp-flush] as it
@@ -313,8 +331,8 @@ returns. }
 @defproc[(stomp-subscribe [session stomp-session?]
 			  [destination string?]
 			  [subscription-id string?]
-			  [ack-mode (or 'auto 'client 'client-individual)]
-			  [headers (listof (list symbol? string?)) '()])
+			  [#:ack-mode ack-mode (or 'auto 'client 'client-individual)]
+			  [#:headers headers (listof (list symbol? string?)) '()])
 	 void?]{
 
 Sends a SUBSCRIBE frame to the server. The @racket[destination] is the
@@ -343,10 +361,20 @@ header; see @racket[call-with-receipt].
 
 }
 
+@defproc[(stomp-unsubscribe [session stomp-session?]
+			    [subscription-id string?]
+			    [#:headers headers (listof (list symbol? string?)) '()])
+	 void?]{
+
+Sends an UNSUBSCRIBE frame to the server, to cancel an earlier
+subscription.
+
+}
+
 @defproc[(stomp-ack [session stomp-session?]
 		    [subscription-id string?]
 		    [message-id string?]
-		    [headers (listof (list symbol? string?)) '()])
+		    [#:headers headers (listof (list symbol? string?)) '()])
 	 void?]{
 
 Sends an ACK frame in response to some previous MESSAGE received from
@@ -361,7 +389,7 @@ messages received via a call to @racket[stomp-subscribe] where
 
 @defproc[(stomp-ack-message [session stomp-session?]
 			    [message stomp-frame?]
-			    [headers (listof (list symbol? string?)) '()])
+			    [#:headers headers (listof (list symbol? string?)) '()])
 	 void?]{
 
 Convenience function that extracts the @racket[subscription] and
@@ -371,7 +399,7 @@ Convenience function that extracts the @racket[subscription] and
 @defproc[(stomp-nack [session stomp-session?]
 		     [subscription-id string?]
 		     [message-id string?]
-		     [headers (listof (list symbol? string?)) '()])
+		     [#:headers headers (listof (list symbol? string?)) '()])
 	 void?]{
 
 Sends a NACK frame to the server. See the
@@ -380,15 +408,15 @@ specification of NACK} for more information. Use with caution! }
 
 @defproc[(stomp-begin [session stomp-session?]
 		      [transaction string?]
-		      [headers (listof (list symbol? string?)) '()])
+		      [#:headers headers (listof (list symbol? string?)) '()])
 	 void?]{}
 @defproc[(stomp-commit [session stomp-session?]
 		       [transaction string?]
-		       [headers (listof (list symbol? string?)) '()])
+		       [#:headers headers (listof (list symbol? string?)) '()])
 	 void?]{}
 @defproc[(stomp-abort [session stomp-session?]
 		      [transaction string?]
-		      [headers (listof (list symbol? string?)) '()])
+		      [#:headers headers (listof (list symbol? string?)) '()])
 	 void?]{}
 
 Start, commit, or abort a transaction, respectively. Transaction names

@@ -51,18 +51,18 @@
     (raise e)))
 
 (define (stomp-connect hostname
-		       [login #f]
-		       [passcode #f]
-		       [virtual-host hostname]
-		       [port-number 61613])
+		       #:login [login #f]
+		       #:passcode [passcode #f]
+		       #:virtual-host [virtual-host hostname]
+		       #:port-number [port-number 61613])
   (let-values (((i o) (tcp-connect hostname port-number)))
     (let ((session0 (stomp-session i o #f #f (make-queue))))
       (with-handlers ([exn? (session-exn-closer session0)])
 	(stomp-send-command session0 '|CONNECT|
-			    `((accept-version "1.1")
-			      (host ,virtual-host)
-			      ,@(if login `((login ,login)) '())
-			      ,@(if passcode `((passcode ,passcode)) '())))
+			    #:headers `((accept-version "1.1")
+					(host ,virtual-host)
+					,@(if login `((login ,login)) '())
+					,@(if passcode `((passcode ,passcode)) '())))
 	(match (stomp-next-frame session0)
 	  [(and connected-frame
 		(stomp-frame '|CONNECTED|
@@ -78,7 +78,8 @@
 (define (stomp-disconnect session)
   (call-with-receipt session
    (lambda (receipt)
-     (stomp-send-command session '|DISCONNECT| `((receipt ,receipt)))))
+     (stomp-send-command session '|DISCONNECT|
+			 #:headers `((receipt ,receipt)))))
   (stomp-disconnect/abrupt session))
 
 (define (stomp-disconnect/abrupt session)
@@ -121,7 +122,10 @@
 	(wait-for-receipt session receipt)
 	result))))
 
-(define (stomp-send-command session command [headers '()] [body #f])
+(define (stomp-send-command session
+			    command
+			    #:headers [headers '()]
+			    #:body [body #f])
   (write-stomp-frame (stomp-frame command headers body) (stomp-session-output session)))
 
 (define (stomp-next-frame session [block? #t])
@@ -158,15 +162,20 @@
 					  subscription-id)))
 			   block?))
 
-(define (stomp-send session destination body [headers '()])
-  (stomp-send-command session '|SEND| `((destination ,destination) ,@headers) body))
+(define (stomp-send session destination body #:headers [headers '()])
+  (stomp-send-command session '|SEND|
+		      #:headers `((destination ,destination) ,@headers)
+		      #:body body))
 
-(define (stomp-send/flush session destination body [headers '()])
-  (stomp-send session destination body headers)
+(define (stomp-send/flush session destination body #:headers [headers '()])
+  (stomp-send session destination body #:headers headers)
   (stomp-flush session))
 
-(define (stomp-subscribe session destination subscription-id [ack-mode 'auto] [headers '()])
+(define (stomp-subscribe session destination subscription-id
+			 #:ack-mode [ack-mode 'auto]
+			 #:headers [headers '()])
   (stomp-send-command session '|SUBSCRIBE|
+		      #:headers
 		      `((destination ,destination)
 			(id ,subscription-id)
 			(ack ,(case ack-mode
@@ -178,44 +187,52 @@
 					      (current-continuation-marks))))))
 			,@headers)))
 
-(define (stomp-unsubscribe session subscription-id [headers '()])
-  (stomp-send-command session '|UNSUBSCRIBE| `((id ,subscription-id) ,@headers)))
+(define (stomp-unsubscribe session subscription-id
+			   #:headers [headers '()])
+  (stomp-send-command session '|UNSUBSCRIBE|
+		      #:headers `((id ,subscription-id) ,@headers)))
 
-(define (stomp-ack session subscription-id message-id [headers '()])
+(define (stomp-ack session subscription-id message-id
+		   #:headers [headers '()])
   (stomp-send-command session '|ACK|
-		      `((subscription ,subscription-id)
-			(message-id ,message-id)
-			,@headers)))
+		      #:headers `((subscription ,subscription-id)
+				  (message-id ,message-id)
+				  ,@headers)))
 
-(define (stomp-ack-message session message [headers '()])
+(define (stomp-ack-message session message
+			   #:headers [headers '()])
   (stomp-ack session
 	     (or (stomp-frame-header message 'subscription)
 		 (raise (exn:stomp "Message frame missing subscription header"
 				   (current-continuation-marks)
 				   message)))
 	     (stomp-message-id message)
-	     headers))
+	     #:headers headers))
 
-(define (stomp-nack session subscription-id message-id [headers '()])
+(define (stomp-nack session subscription-id message-id
+		    #:headers [headers '()])
   (stomp-send-command session '|NACK|
-		      `((subscription ,subscription-id)
-			(message-id ,message-id)
-			,@headers)))
+		      #:headers `((subscription ,subscription-id)
+				  (message-id ,message-id)
+				  ,@headers)))
 
-(define (stomp-begin session transaction [headers '()])
+(define (stomp-begin session transaction
+		     #:headers [headers '()])
   (stomp-send-command session '|BEGIN|
-		      `((transaction ,transaction)
-			,@headers)))
+		      #:headers `((transaction ,transaction)
+				  ,@headers)))
 
-(define (stomp-commit session transaction [headers '()])
+(define (stomp-commit session transaction
+		      #:headers [headers '()])
   (stomp-send-command session '|COMMIT|
-		      `((transaction ,transaction)
-			,@headers)))
+		      #:headers `((transaction ,transaction)
+				  ,@headers)))
 
-(define (stomp-abort session transaction [headers '()])
+(define (stomp-abort session transaction
+		     #:headers [headers '()])
   (stomp-send-command session '|ABORT|
-		      `((transaction ,transaction)
-			,@headers)))
+		      #:headers `((transaction ,transaction)
+				  ,@headers)))
 
 (define (rollback-on-error session transaction)
   (lambda (exn)
