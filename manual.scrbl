@@ -180,7 +180,8 @@ value is returned; otherwise, @racket[default-value] is returned.
 			[#:passcode passcode (or string? #f) #f]
 			[#:virtual-host virtual-host string? hostname]
 			[#:port-number port-number (and/c exact-nonnegative-integer?
-							  (integer-in 0 65535)) 61613])
+							  (integer-in 0 65535)) 61613]
+			[#:headers headers (listof (list symbol? string?)) '()])
 	 stomp-session?]{
 
 Opens a STOMP connection and session to the given @racket[hostname] at
@@ -197,9 +198,14 @@ demo STOMP server hosted at dev.rabbitmq.com, you would use:
 			    #:passcode "guest"
 			    #:virtual-host "/")]
 
+Any headers given in @racket[headers] are included in the CONNECT
+frame.
+
 }
 
-@defproc[(stomp-disconnect [session stomp-session?]) void?]{
+@defproc[(stomp-disconnect [session stomp-session?]
+			   [#:headers headers (listof (list symbol? string?)) '()])
+	 void?]{
 
 Cleanly disconnects a STOMP session, sending a DISCONNECT frame and
 waiting for receipt of an acknowledgement before closing the session's

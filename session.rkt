@@ -54,7 +54,8 @@
 		       #:login [login #f]
 		       #:passcode [passcode #f]
 		       #:virtual-host [virtual-host hostname]
-		       #:port-number [port-number 61613])
+		       #:port-number [port-number 61613]
+		       #:headers [headers '()])
   (let-values (((i o) (tcp-connect hostname port-number)))
     (let ((session0 (stomp-session i o #f #f (make-queue))))
       (with-handlers ([exn? (session-exn-closer session0)])
@@ -62,7 +63,8 @@
 			    #:headers `((accept-version "1.1")
 					(host ,virtual-host)
 					,@(if login `((login ,login)) '())
-					,@(if passcode `((passcode ,passcode)) '())))
+					,@(if passcode `((passcode ,passcode)) '())
+					,@headers))
 	(match (stomp-next-frame session0)
 	  [(and connected-frame
 		(stomp-frame '|CONNECTED|
@@ -75,11 +77,11 @@
 			  (make-queue))]
 	  [v (error 'stomp-connect "Could not CONNECT to STOMP server: ~v" v)])))))
 
-(define (stomp-disconnect session)
+(define (stomp-disconnect session #:headers [headers '()])
   (call-with-receipt session
    (lambda (receipt)
      (stomp-send-command session '|DISCONNECT|
-			 #:headers `((receipt ,receipt)))))
+			 #:headers `((receipt ,receipt) ,@headers))))
   (stomp-disconnect/abrupt session))
 
 (define (stomp-disconnect/abrupt session)
