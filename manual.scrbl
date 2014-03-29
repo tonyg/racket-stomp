@@ -209,7 +209,8 @@ STOMP version 1.1. The server will choose a protocol variant that it
 supports from this list. You can check the version that the server
 chose using @racket[stomp-session-version]. If the server supports
 none of the requested versions, it should fall back to STOMP version
-1.0.
+1.0. To force the use of STOMP version 1.0, pass in @racket['()] as
+@racket[request-versions].
 
 }
 
