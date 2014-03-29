@@ -141,3 +141,33 @@
 			     "a:b\n"
 			     "\n"
 			     "\0"))
+
+(check-equal? (call-with-output-string
+	       (lambda (p) (write-stomp-frame (stomp-frame '|COMMAND| '((a "b")) #f) p
+					      #:use-content-length 'default)))
+	      (string-append "COMMAND\n" "a:b\n" "\n" "\0"))
+
+(check-equal? (call-with-output-string
+	       (lambda (p) (write-stomp-frame (stomp-frame '|COMMAND| '((a "b")) #f) p
+					      #:use-content-length 'always)))
+	      (string-append "COMMAND\n" "content-length:0\n" "a:b\n" "\n" "\0"))
+
+(check-equal? (call-with-output-string
+	       (lambda (p) (write-stomp-frame (stomp-frame '|COMMAND| '((a "b")) #f) p
+					      #:use-content-length 'never)))
+	      (string-append "COMMAND\n" "a:b\n" "\n" "\0"))
+
+(check-equal? (call-with-output-string
+	       (lambda (p) (write-stomp-frame (stomp-frame '|COMMAND| '((a "b")) #"hi") p
+					      #:use-content-length 'default)))
+	      (string-append "COMMAND\n" "content-length:2\n" "a:b\n" "\n" "hi\0"))
+
+(check-equal? (call-with-output-string
+	       (lambda (p) (write-stomp-frame (stomp-frame '|COMMAND| '((a "b")) #"hi") p
+					      #:use-content-length 'always)))
+	      (string-append "COMMAND\n" "content-length:2\n" "a:b\n" "\n" "hi\0"))
+
+(check-equal? (call-with-output-string
+	       (lambda (p) (write-stomp-frame (stomp-frame '|COMMAND| '((a "b")) #"hi") p
+					      #:use-content-length 'never)))
+	      (string-append "COMMAND\n" "a:b\n" "\n" "hi\0"))

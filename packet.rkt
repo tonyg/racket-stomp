@@ -174,12 +174,17 @@
 				  header)))
     (write-stomp-line (string-append k ":" v) port)))
 
-(define (write-stomp-frame frame port #:escape? [escape? #t])
+(define (write-stomp-frame frame port
+			   #:escape? [escape? #t]
+			   #:use-content-length [use-content-length 'default])
   (let* ((body (or (stomp-frame-body frame) #""))
 	 (len (bytes-length body))
 	 (user-headers (filter (lambda (header) (not (eq? (car header) 'content-length)))
 			       (stomp-frame-headers frame)))
-	 (headers (if (positive? len)
+	 (want-content-length-header (or (eq? use-content-length 'always)
+					 (and (positive? len)
+					      (not (eq? use-content-length 'never)))))
+	 (headers (if want-content-length-header
 		      (cons (list 'content-length (number->string len)) user-headers)
 		      user-headers)))
     (write-stomp-line (symbol->string (stomp-frame-command frame)) port)

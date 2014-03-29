@@ -135,10 +135,12 @@
 (define (stomp-send-command session
 			    command
 			    #:headers [headers '()]
-			    #:body [body #f])
+			    #:body [body #f]
+			    #:use-content-length [use-content-length 'default])
   (write-stomp-frame (stomp-frame command headers body)
 		     (stomp-session-output session)
-		     #:escape? (session-needs-header-escaping? session)))
+		     #:escape? (session-needs-header-escaping? session)
+		     #:use-content-length use-content-length))
 
 (define (stomp-next-frame session [block? #t])
   (stomp-next-frame/filter session (lambda (frame) #t) block?))
@@ -175,10 +177,13 @@
 					  subscription-id)))
 			   block?))
 
-(define (stomp-send session destination body #:headers [headers '()])
+(define (stomp-send session destination body
+		    #:headers [headers '()]
+		    #:use-content-length [use-content-length 'default])
   (stomp-send-command session '|SEND|
 		      #:headers `((destination ,destination) ,@headers)
-		      #:body body))
+		      #:body body
+		      #:use-content-length use-content-length))
 
 (define (stomp-send/flush session destination body #:headers [headers '()])
   (stomp-send session destination body #:headers headers)

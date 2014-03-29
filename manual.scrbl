@@ -275,7 +275,8 @@ SEND operation:
 @defproc[(stomp-send-command [session stomp-session?]
 			     [command string?]
 			     [#:headers headers (listof (list symbol? string?)) '()]
-			     [#:body body (or bytes? #f) #f])
+			     [#:body body (or bytes? #f) #f]
+			     [#:use-content-length use-content-length (or 'default 'always 'never) 'default])
 	 void?]{
 
 Sends a STOMP frame with the given @racket[command], @racket[headers]
@@ -285,7 +286,20 @@ acknowledgement-of-receipt from the server.
 
 Note that this is a low-level way of sending commands to the server:
 better to use @racket[stomp-send], @racket[stomp-subscribe],
-@racket[stomp-ack-message] etc. }
+@racket[stomp-ack-message] etc.
+
+If you are working with a STOMP server such as ActiveMQ that
+interprets the presence or absence of a @tt{content-length} header as
+an indicator of the content @emph{type}, you can use the
+@racket[use-content-length] parameter to override the default
+behaviour. Setting it to @racket['default] causes the header to be
+generated whenever @racket[body] is non-empty. Setting it to
+@racket['always] causes it to always be generated, and setting it to
+@racket['never] causes it to never be generated. You should omit
+@racket[use-content-length] unless you are certain you need to work
+with a broken server.
+
+}
 
 @defproc[(stomp-next-frame [session stomp-session?]
 			   [block? boolean? #t])
@@ -325,7 +339,8 @@ buffer. }
 @defproc[(stomp-send [session stomp-session?]
 		     [destination string?]
 		     [body (or bytes? #f)]
-		     [#:headers headers (listof (list symbol? string?))'()])
+		     [#:headers headers (listof (list symbol? string?))'()]
+		     [#:use-content-length use-content-length (or 'default 'always 'never) 'default])
 	 void?]{
 
 Sends a SEND frame to the server with the given @racket[destination],
@@ -334,7 +349,11 @@ other @racket[headers], and optional @racket[body]. See
 back from the server.
 
 This is the procedure you will want to use to actually publish
-messages to the STOMP server. }
+messages to the STOMP server.
+
+In some cases, you may need to use the @racket[use-content-length]
+parameter. See @racket[stomp-send-command] for details. You should
+omit this parameter unless you are certain that you need to set it. }
 
 @defproc[(stomp-send/flush [session stomp-session?]
 			   [destination string?]
