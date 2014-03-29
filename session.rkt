@@ -3,6 +3,7 @@
 (require "packet.rkt")
 (require racket/tcp)
 (require racket/match)
+(require (only-in racket/string string-join))
 (require "functional-queue.rkt")
 
 (provide (struct-out stomp-session)
@@ -39,6 +40,7 @@
 		       output
 		       id
 		       server-info
+		       version
 		       [buffer #:mutable])
 	#:transparent)
 
@@ -55,25 +57,25 @@
 		       #:passcode [passcode #f]
 		       #:virtual-host [virtual-host hostname]
 		       #:port-number [port-number 61613]
-		       #:headers [headers '()])
+		       #:headers [headers '()]
+		       #:request-versions [request-versions0 '("1.1")])
+  (define request-versions (sort request-versions0 string<?))
   (let-values (((i o) (tcp-connect hostname port-number)))
-    (let ((session0 (stomp-session i o #f #f (make-queue))))
+    (let ((session0 (stomp-session i o #f #f "1.0" (make-queue))))
       (with-handlers ([exn? (session-exn-closer session0)])
 	(stomp-send-command session0 '|CONNECT|
-			    #:headers `((accept-version "1.1")
+			    #:headers `((accept-version ,(string-join request-versions ","))
 					(host ,virtual-host)
 					,@(if login `((login ,login)) '())
 					,@(if passcode `((passcode ,passcode)) '())
 					,@headers))
 	(match (stomp-next-frame session0)
-	  [(and connected-frame
-		(stomp-frame '|CONNECTED|
-			     `(,_ ... (version "1.1") ,_ ...)
-			     _))
+	  [(and connected-frame (stomp-frame '|CONNECTED| _ _))
 	   (stomp-session i
 			  o
 			  (stomp-frame-header connected-frame 'session)
 			  (stomp-frame-header connected-frame 'server)
+			  (stomp-frame-header connected-frame 'version "1.0")
 			  (make-queue))]
 	  [v (error 'stomp-connect "Could not CONNECT to STOMP server: ~v" v)])))))
 
@@ -124,11 +126,16 @@
 	(wait-for-receipt session receipt)
 	result))))
 
+(define (session-needs-header-escaping? session)
+  (not (string=? (stomp-session-version session) "1.0")))
+
 (define (stomp-send-command session
 			    command
 			    #:headers [headers '()]
 			    #:body [body #f])
-  (write-stomp-frame (stomp-frame command headers body) (stomp-session-output session)))
+  (write-stomp-frame (stomp-frame command headers body)
+		     (stomp-session-output session)
+		     #:escape? (session-needs-header-escaping? session)))
 
 (define (stomp-next-frame session [block? #t])
   (stomp-next-frame/filter session (lambda (frame) #t) block?))
@@ -145,7 +152,8 @@
 (define (block-on-predicate session predicate)
   (stomp-flush session)
   (let loop ()
-    (let ((frame (read-stomp-frame (stomp-session-input session))))
+    (let ((frame (read-stomp-frame (stomp-session-input session)
+				   #:unescape? (session-needs-header-escaping? session))))
       (cond
        ((eof-object? frame) frame)
        ((predicate frame) frame)

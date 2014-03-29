@@ -20,7 +20,7 @@
 	       (string-append "COMMAND\n"
 			      "header1:value1\n"
 			      "header two:value two\n"
-			      "a:b\r\\n\\cc\n"
+			      "a:b\r\\n\\cc:d\n"
 			      "a:another\n"
 			      "\n"
 			      "some body\0")
@@ -28,7 +28,23 @@
 	      (stomp-frame '|COMMAND|
 			   '((header1 "value1")
 			     (|header two| "value two")
-			     (a "b\r\n:c")
+			     (a "b\r\n:c:d")
+			      (a "another"))
+			   #"some body"))
+
+(check-equal? (call-with-input-string
+	       (string-append "COMMAND\n"
+			      "header1:value1\n"
+			      "header two:value two\n"
+			      "a:b\r\\n\\cc:d\n"
+			      "a:another\n"
+			      "\n"
+			      "some body\0")
+	       (lambda (p) (read-stomp-frame p #:unescape? #f)))
+	      (stomp-frame '|COMMAND|
+			   '((header1 "value1")
+			     (|header two| "value two")
+			     (a "b\r\\n\\cc:d")
 			      (a "another"))
 			   #"some body"))
 
@@ -67,6 +83,56 @@
 			     "a:another\n"
 			     "\n"
 			     "some body\0"))
+
+(check-equal? (call-with-output-string
+	       (lambda (p)
+		 (write-stomp-frame (stomp-frame '|COMMAND|
+						 '((header1 "value1")
+						   (|header two| "value two")
+						   (a "b\r\n:c")
+						   (a "another"))
+						 #"some body")
+				    p)))
+	      (string-append "COMMAND\n"
+			     "content-length:9\n"
+			     "header1:value1\n"
+			     "header two:value two\n"
+			     "a:b\r\\n\\cc\n"
+			     "a:another\n"
+			     "\n"
+			     "some body\0"))
+
+(check-equal? (call-with-output-string
+	       (lambda (p)
+		 (write-stomp-frame (stomp-frame '|COMMAND|
+						 '((a "b:c"))
+						 #f)
+				    p
+				    #:escape? #f)))
+	      (string-append "COMMAND\n"
+			     "a:b:c\n"
+			     "\n"
+			     "\0"))
+
+(check-exn #rx"as it contains a newline"
+	   (lambda ()
+	     (call-with-output-string
+	      (lambda (p)
+		(write-stomp-frame (stomp-frame '|COMMAND|
+						'((a "b\nc"))
+						#f)
+				   p
+				   #:escape? #f)))))
+
+(check-exn #rx"as it contains a colon"
+	   (lambda ()
+	     (call-with-output-string
+	      (lambda (p)
+		(write-stomp-frame (stomp-frame '|COMMAND|
+						'((a:b "c"))
+						#f)
+				   p
+				   #:escape? #f)))))
 
 (check-equal? (call-with-output-string
 	       (lambda (p)

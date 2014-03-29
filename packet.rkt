@@ -40,6 +40,7 @@
 
 (require racket/match)
 (require srfi/2)
+(require (only-in srfi/13 string-index))
 
 (provide (struct-out stomp-frame)
 	 stomp-frame-header
@@ -55,11 +56,11 @@
    ((assq header-name (stomp-frame-headers frame)) => cadr)
    (else default-value)))
 
-(define (read-stomp-frame port)
+(define (read-stomp-frame port #:unescape? [unescape? #t])
   (let ((command (read-stomp-command port)))
     (if (eof-object? command)
 	command
-	(let ((headers (read-stomp-headers port '())))
+	(let ((headers (read-stomp-headers port unescape?)))
 	  (if (eof-object? headers)
 	      headers
 	      (let ((body (read-stomp-body headers port)))
@@ -111,18 +112,23 @@
      ((string=? line "") (read-stomp-command port))
      (else (string->symbol line)))))
 
-(define (read-stomp-headers port acc)
-  (let ((line (read-stomp-line port)))
-    (cond
-     ((eof-object? line) line)
-     ((string=? line "") (reverse acc))
-     (else (match (regexp-split ":" line)
-	     [`(,escaped-key ,escaped-value)
-	      (read-stomp-headers port
-				  (cons (list (string->symbol (unescape-stomp-header escaped-key))
-					      (unescape-stomp-header escaped-value))
-					acc))]
-	     [_ (stomp-syntax-error "Invalid STOMP header")])))))
+(define (read-stomp-headers port unescape?)
+  (let loop ((acc '()))
+    (let ((line (read-stomp-line port)))
+      (cond
+       ((eof-object? line) line)
+       ((string=? line "") (reverse acc))
+       (else (match (string-index line #\:)
+	       [#f (stomp-syntax-error "Invalid STOMP header")]
+	       [i
+		(define escaped-key (substring line 0 i))
+		(define escaped-value (substring line (+ i 1) (string-length line)))
+		(loop (cons (if unescape?
+				(list (string->symbol (unescape-stomp-header escaped-key))
+				      (unescape-stomp-header escaped-value))
+				(list (string->symbol escaped-key)
+				      escaped-value))
+			    acc))]))))))
 
 (define (read-stomp-body headers port)
   (cond
@@ -151,7 +157,24 @@
        ((= b 0) (list->bytes (reverse acc)))
        (else (loop (cons b acc)))))))
 
-(define (write-stomp-frame frame port)
+(define (write-escaped-header port)
+  (lambda (header)
+    (define k (escape-stomp-header (symbol->string (car header))))
+    (define v (escape-stomp-header (cadr header)))
+    (write-stomp-line (string-append k ":" v) port)))
+
+(define (write-non-escaped-header port)
+  (lambda (header)
+    (define k (symbol->string (car header)))
+    (define v (cadr header))
+    (when (string-index k #\:)
+      (stomp-syntax-error (format "Cannot write STOMP header key, as it contains a colon: ~v" k)))
+    (when (or (string-index k #\newline) (string-index v #\newline))
+      (stomp-syntax-error (format "Cannot write STOMP header, as it contains a newline: ~v"
+				  header)))
+    (write-stomp-line (string-append k ":" v) port)))
+
+(define (write-stomp-frame frame port #:escape? [escape? #t])
   (let* ((body (or (stomp-frame-body frame) #""))
 	 (len (bytes-length body))
 	 (user-headers (filter (lambda (header) (not (eq? (car header) 'content-length)))
@@ -160,12 +183,7 @@
 		      (cons (list 'content-length (number->string len)) user-headers)
 		      user-headers)))
     (write-stomp-line (symbol->string (stomp-frame-command frame)) port)
-    (for-each (lambda (header)
-		(write-stomp-line
-		 (string-append (escape-stomp-header (symbol->string (car header)))
-				":"
-				(escape-stomp-header (cadr header)))
-		 port))
+    (for-each (if escape? (write-escaped-header port) (write-non-escaped-header port))
 	      headers)
     (stomp-newline port)
     (write-bytes body port)

@@ -181,7 +181,8 @@ value is returned; otherwise, @racket[default-value] is returned.
 			[#:virtual-host virtual-host string? hostname]
 			[#:port-number port-number (and/c exact-nonnegative-integer?
 							  (integer-in 0 65535)) 61613]
-			[#:headers headers (listof (list symbol? string?)) '()])
+			[#:headers headers (listof (list symbol? string?)) '()]
+			[#:request-versions request-versions (listof string?) '("1.1")])
 	 stomp-session?]{
 
 Opens a STOMP connection and session to the given @racket[hostname] at
@@ -200,6 +201,15 @@ demo STOMP server hosted at dev.rabbitmq.com, you would use:
 
 Any headers given in @racket[headers] are included in the CONNECT
 frame.
+
+The optional @racket[request-versions] argument should be a list of
+strings indicating the STOMP protocol versions to ask for when
+negotiating with the server. If omitted, it defaults to asking for
+STOMP version 1.1. The server will choose a protocol variant that it
+supports from this list. You can check the version that the server
+chose using @racket[stomp-session-version]. If the server supports
+none of the requested versions, it should fall back to STOMP version
+1.0.
 
 }
 
@@ -450,6 +460,7 @@ the server before the exception propagates out of the call to
 			   [output output-port?]
 			   [id (or string? #f)]
 			   [server-info (or string? #f)]
+			   [version string?]
 			   [buffer queue?])
 			  #:transparent]{
 
@@ -457,5 +468,6 @@ Represents a STOMP client session. The @racket[input] and
 @racket[output] represent the socket connection to the server. The
 @racket[id] is the session ID, as decided by the server. The
 @racket[server-info] is ad-hoc server information, if any was sent
-during connection setup. The @racket[buffer] is a queue of received
-frames that have not yet been processed. }
+during connection setup. The @racket[version] is the protocol version
+number, as decided by the server. The @racket[buffer] is a queue of
+received frames that have not yet been processed. }
