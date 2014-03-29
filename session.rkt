@@ -195,7 +195,7 @@
   (stomp-send-command session '|SUBSCRIBE|
 		      #:headers
 		      `((destination ,destination)
-			(id ,subscription-id)
+			,@(if subscription-id `((id ,subscription-id)) '())
 			(ack ,(case ack-mode
 				((auto) "auto")
 				((client) "client")
@@ -206,31 +206,34 @@
 			,@headers)))
 
 (define (stomp-unsubscribe session subscription-id
+			   #:destination [destination #f]
 			   #:headers [headers '()])
+  (when (and (not subscription-id) (not destination))
+    (error 'stomp-unsubscribe
+	   "stomp-unsubscribe requires either a subscription-id or a destination"))
   (stomp-send-command session '|UNSUBSCRIBE|
-		      #:headers `((id ,subscription-id) ,@headers)))
+		      #:headers `(,@(if subscription-id `((id ,subscription-id)) '())
+				  ,@(if destination `((destination ,destination)) '())
+				  ,@headers)))
 
 (define (stomp-ack session subscription-id message-id
 		   #:headers [headers '()])
   (stomp-send-command session '|ACK|
-		      #:headers `((subscription ,subscription-id)
+		      #:headers `(,@(if subscription-id `((subscription ,subscription-id)) '())
 				  (message-id ,message-id)
 				  ,@headers)))
 
 (define (stomp-ack-message session message
 			   #:headers [headers '()])
   (stomp-ack session
-	     (or (stomp-frame-header message 'subscription)
-		 (raise (exn:stomp "Message frame missing subscription header"
-				   (current-continuation-marks)
-				   message)))
+	     (stomp-frame-header message 'subscription)
 	     (stomp-message-id message)
 	     #:headers headers))
 
 (define (stomp-nack session subscription-id message-id
 		    #:headers [headers '()])
   (stomp-send-command session '|NACK|
-		      #:headers `((subscription ,subscription-id)
+		      #:headers `(,@(if subscription-id `((subscription ,subscription-id)) '())
 				  (message-id ,message-id)
 				  ,@headers)))
 

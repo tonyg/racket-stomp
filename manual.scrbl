@@ -324,17 +324,19 @@ waits for a match to arrive, buffering non-matching frames as it goes.
 Never reorders frames in the buffer. }
 
 @defproc[(stomp-next-message [session stomp-session?]
-			     [subscription-id string?]
+			     [subscription-id (or string? #f)]
 			     [block? boolean? #t])
 	 (or stomp-frame? eof-object? #f)]{
 
 Uses @racket[stomp-next-frame/filter] to retrieve the next available
 MESSAGE frame that has a @racket[subscription] header matching
-@racket[subscription-id]. The @racket[block?] argument acts as for
-@racket[stomp-next-frame/filter]. Returns the first matching MESSAGE
-frame, end-of-file if the connection closed, or #f if @racket[block?]
-was @racket[#f] and no matching MESSAGE was available in the session's
-buffer. }
+@racket[subscription-id] (or if @racket[subscription-id] is
+@racket[#f], the next available MESSAGE frame that has no
+@racket[subscription] header at all). The @racket[block?] argument
+acts as for @racket[stomp-next-frame/filter]. Returns the first
+matching MESSAGE frame, end-of-file if the connection closed, or #f if
+@racket[block?] was @racket[#f] and no matching MESSAGE was available
+in the session's buffer. }
 
 @defproc[(stomp-send [session stomp-session?]
 		     [destination string?]
@@ -366,7 +368,7 @@ returns. }
 
 @defproc[(stomp-subscribe [session stomp-session?]
 			  [destination string?]
-			  [subscription-id string?]
+			  [subscription-id (or string? #f)]
 			  [#:ack-mode ack-mode (or 'auto 'client 'client-individual)]
 			  [#:headers headers (listof (list symbol? string?)) '()])
 	 void?]{
@@ -395,20 +397,35 @@ in MESSAGE frames that result from this SUBSCRIBE operation. The
 Proceeds without waiting for a reply. To wait for a reply, supply a @racket[receipt]
 header; see @racket[call-with-receipt].
 
+If @racket[subscription-id] is @racket[#f], then no subscription
+identifier will be associated with this subscription, and you may have
+difficulty telling which subscription any resulting MESSAGE frames
+relate to. You may also have difficulty cancelling such subscriptions
+since you will have to use an (ambiguous) destination, instead of an
+unambiguous subscription identifier.
+
 }
 
 @defproc[(stomp-unsubscribe [session stomp-session?]
-			    [subscription-id string?]
+			    [subscription-id (or string? #f)]
+			    [#:destination destination (or string? #f) #f]
 			    [#:headers headers (listof (list symbol? string?)) '()])
 	 void?]{
 
 Sends an UNSUBSCRIBE frame to the server, to cancel an earlier
 subscription.
 
+If @racket[subscription-id] is @racket[#f], then @racket[destination]
+must be non-@racket[#f], and the cancellation request will operate
+using the possibly-ambiguous notion of destination instead of the
+unambiguous notion of a subscription identifier. Servers may differ in
+how they treat this situation. It is always safe to use a unique
+per-subscription identifier when subscribing and unsubscribing.
+
 }
 
 @defproc[(stomp-ack [session stomp-session?]
-		    [subscription-id string?]
+		    [subscription-id (or string? #f)]
 		    [message-id string?]
 		    [#:headers headers (listof (list symbol? string?)) '()])
 	 void?]{
@@ -433,7 +450,7 @@ Convenience function that extracts the @racket[subscription] and
 @racket[stomp-ack]. }
 
 @defproc[(stomp-nack [session stomp-session?]
-		     [subscription-id string?]
+		     [subscription-id (or string? #f)]
 		     [message-id string?]
 		     [#:headers headers (listof (list symbol? string?)) '()])
 	 void?]{
