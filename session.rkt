@@ -64,7 +64,10 @@
     (let ((session0 (stomp-session i o #f #f "1.0" (make-queue))))
       (with-handlers ([exn? (session-exn-closer session0)])
 	(stomp-send-command session0 '|CONNECT|
-			    #:headers `((accept-version ,(string-join request-versions ","))
+			    #:headers `(,@(if (null? request-versions)
+					      '()
+					      `((accept-version
+						 ,(string-join request-versions ","))))
 					(host ,virtual-host)
 					,@(if login `((login ,login)) '())
 					,@(if passcode `((passcode ,passcode)) '())
