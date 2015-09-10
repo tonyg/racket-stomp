@@ -1,7 +1,6 @@
 #lang scribble/manual
 
-@(require planet/scribble
-	  scribble/racket
+@(require scribble/racket
 	  (for-label racket
 		     "functional-queue.rkt"
 		     "main.rkt"))
@@ -76,7 +75,7 @@ demonstration broker service}.
 @subsection{Sending a message}
 
 @racketblock[
-	     (require (planet tonyg/stomp))
+	     (require stomp)
 	     (define s (stomp-connect "dev.rabbitmq.com"
 				      #:login "guest"
 				      #:passcode "guest"
@@ -89,7 +88,7 @@ demonstration broker service}.
 @subsection{Sending a message, with a receipt}
 
 @racketblock[
-	     (require (planet tonyg/stomp))
+	     (require stomp)
 	     (define s (stomp-connect "dev.rabbitmq.com"
 				      #:login "guest"
 				      #:passcode "guest"
@@ -113,7 +112,7 @@ This example uses RabbitMQ's AMQP "wildcards" to subscribe to all
 messages travelling through the "amq.rabbitmq.log" exchange.
 
 @racketblock[
-	   (require (planet tonyg/stomp))
+	   (require stomp)
 	   (define s (stomp-connect "dev.rabbitmq.com"
 				    #:login "guest"
 				    #:passcode "guest"
@@ -127,7 +126,7 @@ messages travelling through the "amq.rabbitmq.log" exchange.
 
 @section{API}
 
-@(defmodule/this-package main)
+@defmodule[stomp]
 
 @defstruct*[(exn:stomp exn:fail) ([frame stomp-frame?])
 	    #:transparent]{
