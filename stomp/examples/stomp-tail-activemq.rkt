@@ -1,6 +1,6 @@
 #lang racket
 
-(require "../main.rkt") ;; or (planet tonyg/stomp)
+(require "../main.rkt") ;; or just (require stomp)
 
 (define s (stomp-connect "localhost"))
 
