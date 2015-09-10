@@ -11,4 +11,4 @@
 (define homepage "https://github.com/tonyg/racket-stomp")
 (define primary-file "main.rkt")
 (define repositories '("4.x"))
-(define scribblings '(("manual.scrbl" ())))
+(define scribblings '(("stomp.scrbl" ())))
