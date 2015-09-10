@@ -2,8 +2,8 @@
 
 @(require scribble/racket
 	  (for-label racket
-		     "../functional-queue.rkt"
-		     "../main.rkt"))
+		     stomp
+		     stomp/functional-queue))
 
 @title{STOMP}
 @author[(author+email "Tony Garnock-Jones" "tonygarnockjones@gmail.com")]
