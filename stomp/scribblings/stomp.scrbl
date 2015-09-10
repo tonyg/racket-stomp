@@ -6,13 +6,13 @@
 		     stomp/functional-queue))
 
 @title{STOMP}
-@author[(author+email "Tony Garnock-Jones" "tonygarnockjones@gmail.com")]
+@author[(author+email "Tony Garnock-Jones" "tonyg@leastfixedpoint.com")]
 
 @local-table-of-contents[]
 
 If you find that this library lacks some feature you need, or you have
 a suggestion for improving it, please don't hesitate to
-@link["mailto:tonygarnockjones@gmail.com"]{get in touch with me}!
+@link["mailto:tonyg@leastfixedpoint.com"]{get in touch with me}!
 
 @section{Introduction}
 
@@ -59,6 +59,13 @@ STOMP server, the available destinations are
 @link["http://activemq.apache.org/"]{ActiveMQ} and other STOMP message
 brokers have different destination name schemata and routing
 behaviours.
+
+@section{License}
+
+All the code in this package is licensed under the LGPL, version 3.0
+or any later version. See
+@link["http://www.gnu.org/licenses/lgpl-3.0.txt"]{the licence text}
+for full details.
 
 @section{Changes}
 
