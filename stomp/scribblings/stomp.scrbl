@@ -330,19 +330,31 @@ waits for a match to arrive, buffering non-matching frames as it goes.
 Never reorders frames in the buffer. }
 
 @defproc[(stomp-next-message [session stomp-session?]
-			     [subscription-id (or string? #f)]
+			     [subscription-id (or 'any #f string? (set/c string?))]
 			     [block? boolean? #t])
 	 (or stomp-frame? eof-object? #f)]{
 
 Uses @racket[stomp-next-frame/filter] to retrieve the next available
 MESSAGE frame that has a @racket[subscription] header matching
-@racket[subscription-id] (or if @racket[subscription-id] is
-@racket[#f], the next available MESSAGE frame that has no
-@racket[subscription] header at all). The @racket[block?] argument
-acts as for @racket[stomp-next-frame/filter]. Returns the first
-matching MESSAGE frame, end-of-file if the connection closed, or #f if
-@racket[block?] was @racket[#f] and no matching MESSAGE was available
-in the session's buffer. }
+@racket[subscription-id]. The @racket[block?] argument acts as for
+@racket[stomp-next-frame/filter]. Returns the first matching MESSAGE
+frame, end-of-file if the connection closed, or #f if @racket[block?]
+was @racket[#f] and no matching MESSAGE was available in the session's
+buffer.
+
+If @racket[subscription-id] is @racket['any], the next available
+MESSAGE frame is returned, no matter the contents of its
+@racket[subscription] header.
+
+If @racket[subscription-id] is @racket[#f], the next available MESSAGE
+frame that has no @racket[subscription] header at all is returned.
+
+If @racket[subscription-id] is a string, then the returned MESSAGE
+frame's @racket[subscription] header will match it exactly.
+
+If @racket[subscription-id] is a set of strings, then the next MESSAGE
+frame with a @racket[subscription] header that is a member of the set
+is returned. }
 
 @defproc[(stomp-send [session stomp-session?]
 		     [destination string?]

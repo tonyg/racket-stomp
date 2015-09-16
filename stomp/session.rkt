@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require "packet.rkt")
+(require racket/set)
 (require racket/tcp)
 (require racket/match)
 (require (only-in racket/string string-join))
@@ -173,8 +174,11 @@
   (stomp-next-frame/filter session
 			   (lambda (frame)
 			     (and (eq? (stomp-frame-command frame) '|MESSAGE|)
-				  (equal? (stomp-frame-header frame 'subscription)
-					  subscription-id)))
+                                  (or (eq? subscription-id 'any)
+                                      (let ((actual-id (stomp-frame-header frame 'subscription)))
+                                        (or (equal? actual-id subscription-id)
+                                            (and (set? subscription-id)
+                                                 (set-member? subscription-id actual-id)))))))
 			   block?))
 
 (define (stomp-send session destination body
