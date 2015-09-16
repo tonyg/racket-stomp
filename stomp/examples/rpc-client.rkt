@@ -32,7 +32,7 @@
     ;; temporary queue as its *subscription id*. For details of the way
     ;; RabbitMQ uses temporary queues, please see their documentation at
     ;; https://www.rabbitmq.com/stomp.html
-    (stomp-send s "/amq/queue/rpc-server.rkt" (string->bytes/utf-8 name-to-greet)
+    (stomp-send s "/queue/rpc-server.rkt" (string->bytes/utf-8 name-to-greet)
                 #:headers '((reply-to "/temp-queue/my-replies")))
 
     ;; This line waits for the reply MESSAGE frame to appear on the

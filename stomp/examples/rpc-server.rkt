@@ -17,13 +17,7 @@
                              #:virtual-host "/"))
 
     ;; We listen for requests on the RabbitMQ queue named
-    ;; "rpc-server.rkt". Note that we specified the "/amq/queue/..."
-    ;; variation rather than the "/queue/..." variation. This primarily
-    ;; impacts questions such as what happens to requests coming from
-    ;; clients when no server is attached to the broker. With
-    ;; /amq/queue, requests survive across server outages; with /queue,
-    ;; they are dropped on the floor if no server is running at the
-    ;; time. We choose the more robust behaviour here.
+    ;; "rpc-server.rkt".
     ;;
     ;; Note well we use the `'client-individual` ack-mode here. This
     ;; means that each request we receive needs to be acknowledged; if
@@ -37,7 +31,7 @@
     ;; Another interesting thing to try is running more than one
     ;; instance of this program. When you issue requests, they will be
     ;; dealt out reasonably evenly to all attached service instances.
-    (stomp-subscribe s "/amq/queue/rpc-server.rkt" "s1" #:ack-mode 'client-individual)
+    (stomp-subscribe s "/queue/rpc-server.rkt" "s1" #:ack-mode 'client-individual)
 
     (printf "Ready for requests.\n")
     (let loop ()
