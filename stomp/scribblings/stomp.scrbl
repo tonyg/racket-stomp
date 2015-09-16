@@ -387,7 +387,7 @@ returns. }
 @defproc[(stomp-subscribe [session stomp-session?]
 			  [destination string?]
 			  [subscription-id (or string? #f)]
-			  [#:ack-mode ack-mode (or 'auto 'client 'client-individual)]
+			  [#:ack-mode ack-mode (or 'auto 'client 'client-individual) 'auto]
 			  [#:headers headers (listof (list symbol? string?)) '()])
 	 void?]{
 
@@ -401,7 +401,7 @@ in MESSAGE frames that result from this SUBSCRIBE operation. The
 
 @itemize[
   @item{@racket['auto] --- The server will not expect any ACK frames
-  in response to MESSAGEs it sends.}
+  in response to MESSAGEs it sends. This is the default.}
 
   @item{@racket['client] --- The server will expect ACK frames, and
   will interpret an acknowledgement of message ID @racket[m] to mean
