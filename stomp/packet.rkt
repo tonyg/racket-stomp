@@ -39,8 +39,6 @@
 ;; header-value        = *<any OCTET except LF or ":">
 
 (require racket/match)
-(require srfi/2)
-(require (only-in srfi/13 string-index))
 
 (provide (struct-out stomp-frame)
 	 stomp-frame-header
@@ -111,6 +109,9 @@
      ((eof-object? line) line)
      ((string=? line "") (read-stomp-command port))
      (else (string->symbol line)))))
+
+(define (string-index s t)
+  (for/or [(i (in-naturals)) (c (in-string s))] (and (eqv? c t) i)))
 
 (define (read-stomp-headers port unescape?)
   (let loop ((acc '()))
