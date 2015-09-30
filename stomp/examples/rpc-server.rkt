@@ -3,6 +3,17 @@
 (module+ main
   (require "../main.rkt") ;; or just (require stomp)
 
+  (define server-host "dev.rabbitmq.com")
+
+  (command-line
+   #:program "rpc-server.rkt"
+   #:once-each
+   [("-s" "--server") hostname
+    ((format "STOMP server hostname (default ~a)" server-host))
+    (set! server-host hostname)]
+   #:args ()
+   (void))
+
   (define start-time (current-inexact-milliseconds))
 
   ;; We wrap the code in a handler for exn:stomp, in order to get
@@ -11,7 +22,7 @@
   (with-handlers ([exn:stomp?
                    (lambda (e)
                      (pretty-print e))])
-    (define s (stomp-connect "dev.rabbitmq.com"
+    (define s (stomp-connect server-host
                              #:login "guest"
                              #:passcode "guest"
                              #:virtual-host "/"))

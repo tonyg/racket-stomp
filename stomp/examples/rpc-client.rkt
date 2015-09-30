@@ -3,11 +3,17 @@
 (module+ main
   (require "../main.rkt") ;; or just (require stomp)
 
+  (define server-host "dev.rabbitmq.com")
+
   ;; The program takes one mandatory positional argument: the name of a
   ;; person to greet.
   (define name-to-greet
     (command-line
      #:program "rpc-client.rkt"
+     #:once-each
+     [("-s" "--server") hostname
+      ((format "STOMP server hostname (default ~a)" server-host))
+      (set! server-host hostname)]
      #:args (name-to-greet)
      name-to-greet))
 
@@ -17,7 +23,7 @@
   (with-handlers ([exn:stomp?
                    (lambda (e)
                      (pretty-print e))])
-    (define s (stomp-connect "dev.rabbitmq.com"
+    (define s (stomp-connect server-host
                              #:login "guest"
                              #:passcode "guest"
                              #:virtual-host "/"))
